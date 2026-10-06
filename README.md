@@ -1,3 +1,6 @@
+> [!NOTE]
+> This is a fork of [Orange-Cyberdefense/GOAD](https://github.com/Orange-Cyberdefense/GOAD) with selected unmerged upstream fixes applied (see the `upstream-prs` branch). Use with care: review the staged changes and test in an isolated lab before use.
+
 <div align="center">
   <h1><img alt="GOAD (Game Of Active Directory)" src="./docs/mkdocs/docs/img/logo_GOAD3.png"></h1>
   <br>
