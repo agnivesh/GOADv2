@@ -50,7 +50,7 @@ resource "azurerm_virtual_machine_extension" "goad-vm-ext" {
   virtual_machine_id   = azurerm_windows_virtual_machine.goad-vm[each.key].id
   publisher            = "Microsoft.Compute"
   type                 = "CustomScriptExtension"
-  type_handler_version = "1.9"
+  type_handler_version = var.custom_script_handler_version
 
   settings = <<SETTINGS
   {
