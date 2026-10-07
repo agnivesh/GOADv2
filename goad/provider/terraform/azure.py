@@ -30,7 +30,11 @@ class AzureProvider(TerraformProvider):
             # find default subscription with subprocess (python sdk doesn't show it)
             az_accounts = self.command.get_azure_account_output()
             if az_accounts is not None:
-                subscriptions = json.loads(az_accounts)
+                try:
+                    subscriptions = json.loads(az_accounts)
+                except json.JSONDecodeError as e:
+                    Log.warning(f'Could not parse azure account list output: {e}')
+                    return None
                 for subscription in subscriptions:
                     if subscription.get("isDefault"):
                         return subscription.get("id")
@@ -50,7 +54,12 @@ class AzureProvider(TerraformProvider):
                 # find default subscription with subprocess (python sdk doesn't show it)
                 az_accounts = self.command.get_azure_account_output()
                 if az_accounts is not None:
-                    subscriptions = json.loads(az_accounts)
+                    try:
+                        subscriptions = json.loads(az_accounts)
+                    except json.JSONDecodeError as e:
+                        Log.warning(f'Could not parse azure account list output: {e}')
+                        check = False
+                        return check
                     for subscription in subscriptions:
                         if subscription.get("isDefault"):
                             Log.info(f'Subscription name : {subscription.get("name")}')
@@ -60,11 +69,11 @@ class AzureProvider(TerraformProvider):
                             Log.info('If you want to change subscription use: az account set --subscription "<subscription id>" ')
                             check = check and True
         except ClientAuthenticationError as error:
-            Log.error(f'Azure authentication error : {error.message}')
+            Log.error(f'Azure authentication error : {error}')
             Log.info('Please login before launching the app with "az login"')
             check = False
         except Exception as error:
-            Log.error(f'Exception during the azure check : {error.message}')
+            Log.error(f'Exception during the azure check : {error}')
             check = False
         return check
 

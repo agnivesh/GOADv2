@@ -137,27 +137,27 @@ class Command:
         return result.returncode == 0
 
     def run_vagrant(self, args, path):
-        result = None
         try:
             command = [self.vagrant_bin]
             command += args
             Log.info('CWD: ' + Utils.get_relative_path(str(path)))
             Log.cmd(' '.join(command))
             result = subprocess.run(command, cwd=path, stderr=sys.stderr, stdout=sys.stdout)
-        except subprocess.CalledProcessError as e:
+        except (FileNotFoundError, OSError, subprocess.SubprocessError) as e:
             Log.error(f"An error occurred while running the command: {e}")
+            return False
         return result.returncode == 0
 
     def run_terraform(self, args, path):
-        result = None
         try:
             command = [self.terraform_bin]
             command += args
             Log.info('CWD: ' + Utils.get_relative_path(str(path)))
             Log.cmd(' '.join(command))
             result = subprocess.run(command, cwd=path, stderr=sys.stderr, stdout=sys.stdout)
-        except subprocess.CalledProcessError as e:
+        except (FileNotFoundError, OSError, subprocess.SubprocessError) as e:
             Log.error(f"An error occurred while running the command: {e}")
+            return False
         return result.returncode == 0
 
     def run_terraform_output(self, args, path):
@@ -173,7 +173,7 @@ class Command:
                                     text=True
                                     )
             if result.returncode != 0:
-                print(f"Error: {result.stderr}")
+                Log.error(f"Error: {result.stderr}")
                 return None
 
             return result.stdout
@@ -205,10 +205,6 @@ class Command:
             return False
         return result.returncode == 0
 
-    def run_docker_ansible(self, args, path, sudo):
-        # Linux only
-        pass
-
     def get_azure_account_output(self):
         result = subprocess.run(
             ["az", "account", "list", "--output", "json"],
@@ -217,7 +213,7 @@ class Command:
             text=True
         )
         if result.returncode != 0:
-            print(f"Error: {result.stderr}")
+            Log.error(f"Error: {result.stderr}")
             return None
 
         return result.stdout

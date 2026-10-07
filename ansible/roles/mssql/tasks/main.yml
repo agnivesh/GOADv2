@@ -8,9 +8,18 @@
   register: winrs_quota
   changed_when: "'changed' in winrs_quota.stdout"
 
+- name: check MSSQL service already exist (if failed service do not exist, launch install)
+  win_service:
+    name: '{{mssql_service_name}}'
+  register: mssql_install_already_done
+  failed_when: false
+
+- debug: msg="{{mssql_install_already_done}}"
+
 - name: Reboot before install (long timeout in case of update)
   win_reboot:
     reboot_timeout: 1200
+  when: mssql_install_already_done.state is not defined or mssql_install_already_done.name is not defined
 
 - name: Set download_url
   set_fact:
@@ -86,14 +95,13 @@
 #     path: "C:\\Program Files\\Microsoft SQL Server\\MSSQL15.{{sql_instance_name}}"
 #   register: mssql_install_already_done
 
-- name: check MSSQL service already exist (if failed service do not exist, launch install)
-  win_service:
-    name: '{{mssql_service_name}}'
-  register: mssql_install_already_done
-  failed_when: mssql_install_already_done is not defined
-  ignore_errors: yes
-
-- debug: msg="{{mssql_install_already_done}}"
+- name: get the installer
+  win_get_url:
+      url: "{{download_url}}"
+      dest: 'c:\setup\mssql\sql_installer.exe'
+  # Re-download when the service is absent even if a file is cached
+  # (a previous OOM half-download is never usable again).
+  when: not installer_file.stat.exists or mssql_install_already_done.state is not defined or mssql_install_already_done.name is not defined
 
 # Install the database with a domain admin user
 - name: Install the database
@@ -107,11 +115,12 @@
     ansible_become_password: "{{domain_admin_password}}"
     ansible_become_flags: logon_type=new_credentials logon_flags=netcredentials_only
   register: mssqlinstall
+  failed_when: mssqlinstall.rc != 0
+  changed_when: mssqlinstall.rc == 0
   until: "mssqlinstall is not failed"
   retries: 3
   delay: 120
   when: mssql_install_already_done.state is not defined or mssql_install_already_done.name is not defined
-#  when: not mssql_install_already_done.stat.exists
 
 # sql server 2022
 - name: Add or update registry for ip port
@@ -179,6 +188,9 @@
   become_user: "{{SQLSVCACCOUNT}}"
   vars:
     ansible_become_pass: "{{SQLSVCPASSWORD}}"
+  register: mssql_admin
+  failed_when: mssql_admin.rc != 0 and 'already exists' not in (mssql_admin.stdout + mssql_admin.stderr)
+  changed_when: mssql_admin.rc == 0
   loop: "{{sql_sysadmins}}"
 
 - name: Add IMPERSONATE on login
@@ -190,6 +202,9 @@
   become_user: "{{SQLSVCACCOUNT}}"
   vars:
     ansible_become_pass: "{{SQLSVCPASSWORD}}"
+  register: mssql_impersonate_login
+  failed_when: mssql_impersonate_login.rc != 0 and 'already exists' not in (mssql_impersonate_login.stdout + mssql_impersonate_login.stderr)
+  changed_when: mssql_impersonate_login.rc == 0
   with_dict: "{{executeaslogin}}"
 
 - name: Add IMPERSONATE on user
@@ -202,6 +217,9 @@
   become_user: "{{SQLSVCACCOUNT}}"
   vars:
     ansible_become_pass: "{{SQLSVCPASSWORD}}"
+  register: mssql_impersonate_user
+  failed_when: mssql_impersonate_user.rc != 0 and 'already exists' not in (mssql_impersonate_user.stdout + mssql_impersonate_user.stderr)
+  changed_when: mssql_impersonate_user.rc == 0
   with_dict: "{{executeasuser}}"
 
 - name: Enable sa account
@@ -213,6 +231,9 @@
   become_user: "{{SQLSVCACCOUNT}}"
   vars:
     ansible_become_pass: "{{SQLSVCPASSWORD}}"
+  register: mssql_sa
+  failed_when: mssql_sa.rc != 0
+  changed_when: false
 
 - name: enable MSSQL authentication and windows authent
   win_shell: |
@@ -222,6 +243,9 @@
   become_user: "{{SQLSVCACCOUNT}}"
   vars:
     ansible_become_pass: "{{SQLSVCPASSWORD}}"
+  register: mssql_auth_mode
+  failed_when: mssql_auth_mode.rc != 0
+  changed_when: false
 
 - name: Restart service MSSQL
   win_service:

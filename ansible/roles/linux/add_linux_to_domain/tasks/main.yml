@@ -65,6 +65,7 @@
   shell:
     "echo {{ domain_password }} | sudo kinit {{ domain_username }}"
   register: result
+  no_log: true
 
 - name: Print Kinit Result
   debug: var=result.stdout_lines
@@ -80,12 +81,13 @@
 - name: Join Realm
   shell:
     "echo {{ domain_password }} | sudo realm join -v -U {{ domain_username }} {{ domain }}"
-  when: not domain in domain_joined.stdout_lines
+  when: domain_joined.stdout is not search(domain)
   register: result
+  no_log: true
 
 - name: Print Realm Result
   debug: var=result.stdout_lines
-  when: not domain in domain_joined.stdout_lines
+  when: domain_joined.stdout is not search(domain)
 
 - name: Activate Homedir Creation
   shell:
@@ -154,11 +156,6 @@
     name: libpam-krb5
     state: present
   notify: Restart SSH
-
-- name: Add ssh
-  shell:
-    "sudo realm join --client-software=sssd {{ domain }}"
-  ignore_errors: yes
 
 - name: Define domain DNS in resolved.conf
   lineinfile:

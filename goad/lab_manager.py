@@ -188,7 +188,10 @@ class LabManager(metaclass=SingletonMeta):
         return list(self.lab_instances.instances.keys())
 
     def get_current_instance_provisioner(self):
-        return self.current_instance.provisioner
+        if self.current_instance:
+            return self.current_instance.provisioner
+        else:
+            return None
 
     def get_labs_options(self):
         return list(self.labs.labs.keys())

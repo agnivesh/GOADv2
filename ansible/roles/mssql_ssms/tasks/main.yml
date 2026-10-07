@@ -22,9 +22,11 @@
 - name: Install SSMS
   win_command: c:\setup\mssql\SSMS_installer.exe /install /quiet /norestart
   register: install_ssmss
+  failed_when: install_ssmss.rc not in [0, 3010, 1641]
+  changed_when: install_ssmss.rc in [0, 3010, 1641]
   when: not ssms_installation.stat.exists
 
 - name: Reboot after install
   win_reboot:
     reboot_timeout: 600
-  when: not ssms_installation.stat.exists
+  when: install_ssmss is changed
