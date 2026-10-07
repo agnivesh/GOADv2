@@ -112,6 +112,9 @@ class Goad(cmd.Cmd):
         self.do_start()
 
     def do_provide(self, arg=''):
+        if not self.lab_manager.get_current_instance_provider():
+            Log.error('No instance selected')
+            return
         result = self.lab_manager.get_current_instance_provider().install()
         if result:
             self.lab_manager.get_current_instance().set_status(PROVIDED)
@@ -135,11 +138,17 @@ class Goad(cmd.Cmd):
         else:
             start = time.time()
             # run playbook
+            if not self.lab_manager.get_current_instance_provisioner():
+                Log.error('No instance selected')
+                return
             self.lab_manager.get_current_instance_provisioner().run(arg)
             time_provision = time.ctime(time.time() - start)[11:19]
             Log.info(f'Provisioned with {arg} in {time_provision}')
 
     def do_provision_lab(self, arg=''):
+        if not self.lab_manager.get_current_instance_provisioner():
+            Log.error('No instance selected')
+            return False
         start = time.time()
         provision_result = self.lab_manager.get_current_instance_provisioner().run()
         if provision_result:
@@ -149,6 +158,9 @@ class Goad(cmd.Cmd):
         return provision_result
 
     def do_provision_lab_from(self, arg):
+        if not self.lab_manager.get_current_instance_provisioner():
+            Log.error('No instance selected')
+            return False
         start = time.time()
         provision_result = self.lab_manager.get_current_instance_provisioner().run_from(arg)
         if provision_result:

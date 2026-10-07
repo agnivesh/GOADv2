@@ -18,9 +18,10 @@ class LabInstances:
         for instance in Utils.list_folders(workspace_path):
             instance_info_file = workspace_path + sep + instance + sep + 'instance.json'
             if os.path.isfile(instance_info_file):
-                with open(instance_info_file, 'r') as instance_info_openfile:
-                    # Reading from json file
-                    instance_info = json.load(instance_info_openfile)
+                try:
+                    with open(instance_info_file, 'r') as instance_info_openfile:
+                        # Reading from json file
+                        instance_info = json.load(instance_info_openfile)
                     lab_name = instance_info['lab']
                     provider_name = instance_info['provider']
                     provisioning_method = instance_info['provisioner']
@@ -28,7 +29,14 @@ class LabInstances:
                     extensions = instance_info['extensions']
                     status = instance_info['status']
                     is_default = instance_info['is_default']
+                except (OSError, json.JSONDecodeError, KeyError) as e:
+                    Log.warning(f'Skipping unreadable instance file {instance_info_file}: {e}')
+                    continue
+                try:
                     self.instances[instance] = LabInstance(instance, lab_name, config, provider_name, provisioning_method, ip_range, extensions, status, is_default)
+                except (TypeError, KeyError) as e:
+                    Log.warning(f'Skipping invalid instance {instance}: {e}')
+                    continue
 
     def nb_instances(self):
         return len(self.instances)
