@@ -191,9 +191,11 @@
         providers = [
           libvirtEnv
           vmwareEnv
-          virtualboxEnv
           proxmoxEnv
-        ];
+        ]
+        # virtualbox is only packaged for x86_64-linux in nixpkgs,
+        # so only expose it there (eachDefaultSystem also covers ARM/Darwin).
+        ++ nixpkgs.lib.optionals (system == "x86_64-linux") [ virtualboxEnv ];
         outputsList = map (p: makeProviderShellAndApp p) providers;
 
         merged = builtins.foldl' (acc: o: {
